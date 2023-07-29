@@ -56,7 +56,7 @@ namespace GCI_Test
                 return;
             }
 
-            var currentTransactions = ExistingTransacionList();
+            var currentTransactions = SharedClass.ExistingTransacionList();
 
             if (!currentTransactions.Any(t => t.Account == account)) //checking if account already exist or not and the first transaction is W or nor
             {
@@ -102,30 +102,7 @@ namespace GCI_Test
 
         }
 
-        static List<TransactionList> ExistingTransacionList()
-        {
-            List<TransactionList> transactionList = new List<TransactionList>
-            {
-                new TransactionList
-                    {
-                        Date = "20230505",TransactionId = "20230505-01",Type = 'D',Amount = 100.00m,Account = "AC001"
-                    },
-                new TransactionList
-                    {
-                        Date = "20230601",TransactionId = "20230601-01",Type = 'D',Amount = 150.00m,Account = "AC001"
-                    },
-                new TransactionList
-                    {
-                        Date = "20230626",TransactionId = "20230626-01",Type = 'W',Amount = 20.00m,Account = "AC001"
-                    },
-                new TransactionList
-                    {
-                        Date = "20230626",TransactionId = "20230626-02",Type = 'W',Amount = 100.00m,Account = "AC001"
-                    }
-            };
-
-            return transactionList;
-        }
+        
 
         static void DisplayTransaction(List<TransactionList> transactionLists)
         {

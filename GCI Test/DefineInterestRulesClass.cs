@@ -15,7 +15,7 @@ namespace GCI_Test
             Console.Write("> ");
             string input = Console.ReadLine().Trim();
 
-            var interestRules = InterestRulesList();
+            var interestRules = SharedClass.InterestRulesList();
 
             if (string.IsNullOrEmpty(input))
             {
@@ -61,23 +61,6 @@ namespace GCI_Test
 
             Console.WriteLine("Interest rule added successfully.");
             DisplayInsterest(interestRules);
-        }
-
-        static List<InterestRule> InterestRulesList()
-        {
-            List<InterestRule> rulesList = new List<InterestRule>
-            {
-                new InterestRule
-                    {
-                        Date = "20230101",RuleId = "Rule01",Rate = 1.95m
-                    },
-                new InterestRule
-                    {
-                        Date = "20230520",RuleId = "Rule02",Rate = 1.90m
-                    }
-            };
-
-            return rulesList;
         }
 
         static void DisplayInsterest(List<InterestRule> interestRule)

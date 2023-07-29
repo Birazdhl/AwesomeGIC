@@ -33,7 +33,7 @@ namespace GCI_Test
             string account = parts[0].Trim();
             string month = Convert.ToInt32(parts[1].Trim()).ToString("D2");
 
-            var transactions = ExistingTransacionList();
+            var transactions = SharedClass.ExistingTransacionList();
 
             if (Convert.ToInt32(month) > 12 || Convert.ToInt32(month) < 1)
             {
@@ -76,61 +76,11 @@ namespace GCI_Test
             return $"{year}{monthValue.ToString("D2")}{lastDay}";
         }
 
-        static List<TransactionList> ExistingTransacionList()
-        {
-            List<TransactionList> transactionList = new List<TransactionList>
-            {
-                new TransactionList
-                    {
-                        Date = "20230505",TransactionId = "20230505-01",Type = 'D',Amount = 100.00m,Account = "AC001",Balance = 100m
-                    },
-                new TransactionList
-                    {
-                        Date = "20230601",TransactionId = "20230601-01",Type = 'D',Amount = 150.00m,Account = "AC001", Balance = 250m
-                    },
-                new TransactionList
-                    {
-                        Date = "20230626",TransactionId = "20230626-01",Type = 'W',Amount = 20.00m,Account = "AC001", Balance = 230m
-                    },
-                new TransactionList
-                    {
-                        Date = "20230626",TransactionId = "20230626-02",Type = 'W',Amount = 100.00m,Account = "AC001" , Balance = 130m
-                    }
-            };
-
-            return transactionList;
-        }
-
-        static List<InterestRule> InterestRulesList()
-        {
-            List<InterestRule> rulesList = new List<InterestRule>
-            {
-                new InterestRule
-                    {
-                        Date = "20230101",RuleId = "Rule01",Rate = 1.95m
-                    },
-                new InterestRule
-                    {
-                        Date = "20230520",RuleId = "Rule02",Rate = 1.90m
-                    },
-                 new InterestRule
-                    {
-                        Date = "20230615",RuleId = "Rule03",Rate = 2.20m
-                    },
-                 new InterestRule
-                    {
-                        Date = "19970101",RuleId = "Rule00",Rate = 0.0m, IsDefault = true //If the rule one starts from 20230202 and transaction is made on 20230101
-                    }
-            };
-
-            return rulesList;
-        }
-
         static InterestRule? GetInterestRule(DateTime date)
         {
             //Get the rule of the interest at the transaction date
 
-            var interestrules = InterestRulesList();
+            var interestrules = SharedClass.InterestRulesList();
 
             var interestruleCuurent = interestrules
                 .OrderByDescending(r => Int32.Parse(r.Date))
@@ -143,7 +93,7 @@ namespace GCI_Test
         {
 
             //Get the Interest rule after the rule of the current transaction date
-            var interestrules = InterestRulesList();
+            var interestrules = SharedClass.InterestRulesList();
 
             var interestruleCuurent = interestrules
                 .OrderBy(r => Int32.Parse(r.Date))
@@ -154,7 +104,7 @@ namespace GCI_Test
 
         static decimal GetInterest(string month, List<TransactionList> transactions)
         {
-            var interestRules = InterestRulesList();
+            var interestRules = SharedClass.InterestRulesList();
             decimal interestValue = 0;
             DateTime startDate = new DateTime(2023, Int32.Parse(month), 1);
 
@@ -204,7 +154,7 @@ namespace GCI_Test
 
             decimal totalInterestValue = 0;
             int days = 0;
-            var interestRules = InterestRulesList();
+            var interestRules = SharedClass.InterestRulesList();
             var firstRule = GetInterestRule(DateTime.ParseExact(filteredTransactions[0].Date, "yyyyMMdd", null));
             var firsRuleValid = GetNextInterestRule(DateTime.ParseExact(filteredTransactions[0].Date, "yyyyMMdd", null));
             var secondRule = filteredTransactions.Count == 1 ? null :
