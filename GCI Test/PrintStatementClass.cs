@@ -48,15 +48,16 @@ namespace GCI_Test
                 Console.WriteLine("No Transaction on this month");
                 return;
             }
-            decimal currentBalance = accountTransactions.Last().Balance; // Balance in the account in the first day of the month
 
             Console.WriteLine($"Account: {account}");
             Console.WriteLine("Date     | Txn Id      | Type | Amount | Balance |");
 
             foreach (var transaction in accountTransactions)
             {
-                Console.WriteLine($"{transaction.Date} | {transaction.TransactionId} | {transaction.Type}    | {transaction.Amount,6:0.00} | {currentBalance,7:0.00} |");
+                Console.WriteLine($"{transaction.Date} | {transaction.TransactionId} | {transaction.Type}    | {transaction.Amount,6:0.00} | {transaction.Balance,7:0.00} |");
             }
+
+            decimal currentBalance = accountTransactions.Last().Balance; // Balance in the account in the first day of the month
 
             // Calculate and display interest for the month
             decimal totalInterest = GetInterest(month, accountTransactions);
@@ -85,7 +86,7 @@ namespace GCI_Test
                     },
                 new TransactionList
                     {
-                        Date = "20230605",TransactionId = "20230601-01",Type = 'D',Amount = 150.00m,Account = "AC001", Balance = 250m
+                        Date = "20230601",TransactionId = "20230601-01",Type = 'D',Amount = 150.00m,Account = "AC001", Balance = 250m
                     },
                 new TransactionList
                     {
@@ -186,19 +187,19 @@ namespace GCI_Test
                 List<TransactionList> twoBreakTransactionList = new List<TransactionList>();
 
                 twoBreakTransactionList.Add(filteredTransactions[i]);
-                if (i != filteredTransactions.Count - 1)
+                if (i != filteredTransactions.Count - 1) // the next transacion fro the next month is nul
                 {
                     twoBreakTransactionList.Add(filteredTransactions[i + 1]);
                 }
 
 
-                interestValue += GetSpeicificRateValueBetweenTwoDates(month, twoBreakTransactionList);
+                interestValue += GetSpeicificRateValueBetweenTwoDate(month, twoBreakTransactionList);
             }
 
             return interestValue / 365;
         }
 
-        static decimal GetSpeicificRateValueBetweenTwoDates(string month, List<TransactionList> filteredTransactions)
+        static decimal GetSpeicificRateValueBetweenTwoDate(string month, List<TransactionList> filteredTransactions)
         {
 
             decimal totalInterestValue = 0;
@@ -206,39 +207,24 @@ namespace GCI_Test
             var interestRules = InterestRulesList();
             var firstRule = GetInterestRule(DateTime.ParseExact(filteredTransactions[0].Date, "yyyyMMdd", null));
             var firsRuleValid = GetNextInterestRule(DateTime.ParseExact(filteredTransactions[0].Date, "yyyyMMdd", null));
-            var secondRule = filteredTransactions.Count == 1 ? null : 
-                GetInterestRule(DateTime.ParseExact(filteredTransactions[1].Date, "yyyyMMdd", null)); //if the transaction is the last transaction of the month
+            var secondRule = filteredTransactions.Count == 1 ? null :
+               GetInterestRule(DateTime.ParseExact(filteredTransactions[1].Date, "yyyyMMdd", null)); //if the transaction is the last transaction of the month
 
-            if (firstRule == null) 
-            {
-                firstRule = interestRules.Where(x => x.Date == "19970101").FirstOrDefault();
-            }
+            string currentBreakDate = filteredTransactions[0].Date;
 
-            //If multiple transaction is made between two Interest Rule Dates
-
-            if (firsRuleValid != null && firstRule.RuleId != secondRule.RuleId)
-            {
-                days = (DateTime.ParseExact(firsRuleValid.Date, "yyyyMMdd", null) -
-                DateTime.ParseExact(filteredTransactions[0].Date, "yyyyMMdd", null)).Days;
-
-                totalInterestValue = days * filteredTransactions[0].Balance * firstRule.Rate;
-
-            }
-
-            var totalRulesInMonth = interestRules.Where(x => x.Date.Substring(4, 2) == month && x.IsDefault == false).ToList();
+            var totalRulesInMonth = interestRules.Where(x => x.Date.Substring(4, 2) == month && x.IsDefault == false
+            && (DateTime.ParseExact(filteredTransactions[0].Date, "yyyyMMdd", null) < (DateTime.ParseExact(x.Date, "yyyyMMdd", null)))).ToList();
             var totalRulesCount = totalRulesInMonth.Count();
-
-            string currentBreakDate = firsRuleValid == null ? filteredTransactions[0].Date : firsRuleValid.Date;
 
             if (secondRule == null)
             {
-
                 //Incase of multiple rule in one month but only one transaction is made in the month.
 
-                for (int i = 0; i < totalRulesCount; i++)
+                for (int i = 0; i <= totalRulesCount; i++)
                 {
 
-                    string nextBreakDate = (i == totalRulesCount - 1) ? GetLastDayOfMonth(month) : totalRulesInMonth[i + 1].Date;
+                    string nextBreakDate = (i == totalRulesCount) 
+                        ? GetLastDayOfMonth(month) : totalRulesInMonth[i].Date;
 
                     var nextRuleValid = GetInterestRule(DateTime.ParseExact(nextBreakDate, "yyyyMMdd", null));
 
@@ -251,18 +237,29 @@ namespace GCI_Test
             }
             else
             {
-                string nextBreakDate = filteredTransactions[1].Date;
                 if (firstRule.RuleId == secondRule.RuleId)
-                    currentBreakDate = filteredTransactions[0].Date;
-                days = (DateTime.ParseExact(nextBreakDate, "yyyyMMdd", null) -
-                        DateTime.ParseExact(currentBreakDate, "yyyyMMdd", null)).Days;
+                {
+                    days = (DateTime.ParseExact(filteredTransactions[1].Date, "yyyyMMdd", null) -
+                        DateTime.ParseExact(filteredTransactions[0].Date, "yyyyMMdd", null)).Days;
+                    var rate = firstRule.Rate;
+                    totalInterestValue += days * rate * filteredTransactions[0].Balance;
+                }
+                else
+                {
+                    var days1 = (DateTime.ParseExact(firsRuleValid.Date, "yyyyMMdd", null) -
+                        DateTime.ParseExact(filteredTransactions[0].Date, "yyyyMMdd", null)).Days;
+                    var rate1 = firstRule.Rate;
 
-                totalInterestValue += days * filteredTransactions[0].Balance * secondRule.Rate;
+                    var days2 = (DateTime.ParseExact(filteredTransactions[1].Date, "yyyyMMdd", null) -
+                        DateTime.ParseExact(firsRuleValid.Date, "yyyyMMdd", null)).Days;
+                    var rate2 = secondRule.Rate;
+
+                    totalInterestValue += (days1 * rate1 + days2 * rate2) * filteredTransactions[0].Balance;
+
+                }
             }
 
             return totalInterestValue / 100;
-
-
         }
     }
 }
