@@ -15,6 +15,7 @@ namespace GCI_Test
             Console.WriteLine("Please enter account and month to generate the statement <Account>|<Month> (or enter blank to go back to the main menu):");
             Console.Write("> ");
             string input = Console.ReadLine().Trim();
+            bool hasTransaction = true;
 
             if (string.IsNullOrEmpty(input))
             {
@@ -41,12 +42,37 @@ namespace GCI_Test
                 PrintStatement();
             }
 
-            var accountTransactions = transactions.Where(t => t.Account == account && t.Date.Substring(4, 2).StartsWith(month)).OrderBy(t => t.Date).ToList();
+            var accountTransactions = transactions.Where(t => t.Account == account).ToList();
 
             if (accountTransactions.Count == 0)
             {
-                Console.WriteLine("Account/Transaction Not Found");
+                //If the account number is not in the list
+                Console.WriteLine("Account Not Found");
                 return;
+            }
+            else
+            {
+                //the transaction of the month entered by user
+                accountTransactions = accountTransactions.Where(t => t.Date.Substring(4, 2).StartsWith(month)).ToList();
+                
+                if (accountTransactions.Count == 0)
+                {
+                    //if the month has no transaction
+
+                    int year = 2023; //User can enter only month so default value is taken as 2023
+                    int monthValue = int.Parse(month);
+                    var firstDayOfTheMonth =  $"{year}{monthValue.ToString("D2")}01";
+
+                    //if a month has no transaction taking the remaing balance from last transaction.
+                    var lastTransactionBeforeTheMonth = transactions.Where(t => (DateTime.ParseExact(t.Date, "yyyyMMdd", null) < (DateTime.ParseExact(firstDayOfTheMonth.ToString(), "yyyyMMdd", null))))
+                                           .ToList().OrderByDescending(x => (DateTime.ParseExact(x.Date, "yyyyMMdd", null)))
+                                            .OrderByDescending(x => x.TransactionId).FirstOrDefault();
+                    hasTransaction = false;
+                    TransactionList list = new TransactionList();
+                    list.Balance = lastTransactionBeforeTheMonth == null ? Convert.ToDecimal(0) : lastTransactionBeforeTheMonth.Balance;
+                    list.Date = $"2023{monthValue.ToString("D2")}01";
+                    accountTransactions.Add(list);
+                }
             }
 
             Console.WriteLine($"Account: {account}");
@@ -54,7 +80,9 @@ namespace GCI_Test
 
             foreach (var transaction in accountTransactions)
             {
-                Console.WriteLine($"{transaction.Date} | {transaction.TransactionId} | {transaction.Type}    | {transaction.Amount,6:0.00} | {transaction.Balance,7:0.00} |");
+                // if there is no transaction in the month then only the interest should be shown
+                if(hasTransaction)
+                    Console.WriteLine($"{transaction.Date} | {transaction.TransactionId} | {transaction.Type}    | {transaction.Amount,6:0.00} | {transaction.Balance,7:0.00} |");
             }
 
             decimal currentBalance = accountTransactions.Last().Balance; // Balance in the account in the first day of the month
@@ -84,12 +112,13 @@ namespace GCI_Test
 
             var interestruleCuurent = interestrules
                 .OrderByDescending(r => Int32.Parse(r.Date))
-                .FirstOrDefault(r => date >= DateTime.ParseExact(r.Date, "yyyyMMdd", null)); 
+                .FirstOrDefault(r => date >= DateTime.ParseExact(r.Date, "yyyyMMdd", null));
 
+            
             return interestruleCuurent;
         }
 
-        static InterestRule? GetNextInterestRule(DateTime date)
+        static InterestRule GetNextInterestRule(DateTime date)
         {
 
             //Get the Interest rule after the rule of the current transaction date
@@ -99,12 +128,16 @@ namespace GCI_Test
                 .OrderBy(r => Int32.Parse(r.Date))
                 .FirstOrDefault(r => date < DateTime.ParseExact(r.Date, "yyyyMMdd", null));
 
+            if (interestrules == null)
+            {
+                interestrules = interestrules.Where(x => x.IsDefault == true).ToList();
+            }
+
             return interestruleCuurent;
         }
 
         static decimal GetInterest(string month, List<TransactionList> transactions)
         {
-            var interestRules = SharedClass.InterestRulesList();
             decimal interestValue = 0;
             DateTime startDate = new DateTime(2023, Int32.Parse(month), 1);
 
@@ -137,7 +170,7 @@ namespace GCI_Test
                 List<TransactionList> twoBreakTransactionList = new List<TransactionList>();
 
                 twoBreakTransactionList.Add(filteredTransactions[i]);
-                if (i != filteredTransactions.Count - 1) // the next transacion fro the next month is nul
+                if (i != filteredTransactions.Count - 1) // the next transacion f the next month is nul
                 {
                     twoBreakTransactionList.Add(filteredTransactions[i + 1]);
                 }
@@ -155,8 +188,8 @@ namespace GCI_Test
             decimal totalInterestValue = 0;
             int days = 0;
             var interestRules = SharedClass.InterestRulesList();
-            var firstRule = GetInterestRule(DateTime.ParseExact(filteredTransactions[0].Date, "yyyyMMdd", null));
-            var firsRuleValid = GetNextInterestRule(DateTime.ParseExact(filteredTransactions[0].Date, "yyyyMMdd", null));
+            var firstRule = GetInterestRule(DateTime.ParseExact(filteredTransactions[0].Date, "yyyyMMdd", null)); 
+            var firsRuleValid = GetNextInterestRule(DateTime.ParseExact(filteredTransactions[0].Date, "yyyyMMdd", null)); //day upto when the rate is appicable
             var secondRule = filteredTransactions.Count == 1 ? null :
                GetInterestRule(DateTime.ParseExact(filteredTransactions[1].Date, "yyyyMMdd", null)); //if the transaction is the last transaction of the month
 
